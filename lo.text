@@ -1,0 +1,46 @@
+(() => {
+  const data = {
+    ".live.com": {
+      PPLState: { Value: "1", Path: "" },
+      amsc: {
+        Value:
+          "v4FThEmMW4SsnvBo2Pfi8nfdcQbZtu4KdZ10MUKAULqYi24WwdeXAI6EcCyGR8UviYPk1TaaL7OH5yszZ5Mz8vne+fNmlBVCm8SQngc0D1j4SgOg3fJ+9L07xP1/vbUAnk5cLZVFsCzfBQkG3P4mlNg2HRYCOqhHtclfAcXly3FZ0z3UNqHOmPM9G/BihiTku+FQZXUc3Rq3SEBH0XW/BU3ZeakFuKUEXTIcuouPYGG269HkH1bOX2MQ2IrfQYUdE9VQVuT3yPm4VJTnhtkw/ojfz4TyB7c39bkDbYgpF9cv+PPFuam/HtW/dctv4H22:2:3c",
+        Path: "",
+      },
+      mkt: { Value: "en-US", Path: "/" },
+      mkt1: { Value: "en-US", Path: "/" },
+    },
+    ".login.live.com": {
+      MSCC: { Value: "217.156.64.57-MD", Path: "" },
+      MSPBack: { Value: "1787180043", Path: "" },
+      MSPOK: {
+        Value:
+          "$uuid-6ae5ae0f-61eb-4780-acd3-f535aa299fb6$uuid-b1553f84-7ab2-410a-80d0-7180f54beb4f$uuid-a8a272fd-e697-46ee-85c6-13902ddbb0bb$uuid-b98bc68b-a643-4f83-9131-e08d4b56a45a$uuid-d67e09d4-f16b-47ba-b5c6-f7ed71b4deea$uuid-1bf946d2-1311-45d4-947e-92bdfae609b8$uuid-32ceb597-3b77-4566-b436-151f5049429b$uuid-8d664b69-d9f0-4447-a3eb-f859f5cbc970$uuid-e804141a-d317-4874-9f59-d382f5e1ff26",
+        Path: "/",
+      },
+      MSPRequ: { Value: "id=N\u0026lt=1787180043\u0026co=0", Path: "/" },
+      MSPVis: { Value: "$38936", Path: "" },
+      OParams: {
+        Value:
+          "11O.DrllXvFv6OGfVZwuFATOQ3BWIhATi1M9bI5YE9uLyr3VNmC4wWUcqO0EU9aCPDGPm13!j6gY!ckEYLbB9LD1VrLkVmKc7Ytz9DIdR5tKNN6dpeFJ*DvJsT*b7ng6XnMXTgDol2IF3*lu0SpBO5k1TSutVZBNiSdD2sa!Xj*Ecf*EPJLy4t8dXpUsAYuHlHnVN9YBpIYHmKj9N4UNQzicKwz8ZdPKDWeB1cVp*KNC5!xKphVTLnPfKRY6MLyJqb0WYJa7o9M32X!li7*fM1iFzuQP*AlD0BwaQNdNeCjamYHIJM!VTp5FNy7NpaMkr5QksI1pvurjKPFDJWvEz9VjRIkPHCinXtAgp7aCq8PB1mhAqarVrQQw9eZY2sNS7SKBRUErdCVzCy*KCsz7V4hxdvsEPo8inc6CO1ygZqrXg5ta!Lh7qo!fnfiWcO8bMJzKSs8PPK4KuJgdeoejeexfzA8koJ9eLXkk8PVD3vEdouMh6vSN8Xdk3YwAVT7uLdTfY3dCj5qf6pvGc4F8kkUq7c4TMF1!*CXG4tMbj1nJbguScsSEKfw84jp0f21mXfx3GBi2VJGImVrXXyGbHRBbj1SYMsVwkmp5M0rlbZ5MJSc3MuKfpAR1opLposLL2nImeDPei8TBpDJFZwi86jO!aP!4gmeBE7Yy8E7VdQdI1MGB!o9mz9i55SP28O7nhf2JxxAQSI4QCCNghCyfJkF47yCjHhVBWcF5MpHaZwTjTFFQrFkhgtx3fIbDn0CN7EUjASXzduVimbaeufDJMhiFtp*iJQy7BtDX626XR92PYrnEbEj4OCo3N849R8KwTX0jRHSkih!!XTRDektbPPDUnUUoea!q0Zgj4rFBM5yIU8aJBB0N0Qn!xDIUOGhVjXkUXkf8PAbaJF0WVSgp*vKBFDsHAlcvuRZI9PIiw*kR3BGza9fO6Uq7hk!Zvle9ASbQDVWUzRZvNjAx*gT0FwxzZ9M$",
+        Path: "/",
+      },
+      uaid: { Value: "ef30f1229361464ab6a6f1ca9b0ae07e", Path: "/" },
+    },
+  };
+  let ok = 0,
+    fail = 0;
+  for (const [domain, map] of Object.entries(data)) {
+    for (const [name, ck] of Object.entries(map)) {
+      const path = ck.Path || "/";
+      const value = encodeURIComponent(ck.Value);
+      document.cookie = `${name}=${value}; Domain=${domain}; Path=${path}`;
+      if (document.cookie.includes(name + "=")) ok++;
+      else {
+        fail++;
+        console.warn("FAILED:", name);
+      }
+    }
+  }
+  console.log(`done: ${ok} set, ${fail} failed`);
+})();
