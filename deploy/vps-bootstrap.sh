@@ -144,7 +144,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=$ENV_FILE
-WorkingDirectory=$AGENT_DIR
+WorkingDirectory=$(dirname "$AGENT_DIR")
 ExecStart=$VENV_DIR/bin/python -m agent.main
 Restart=always
 RestartSec=5
