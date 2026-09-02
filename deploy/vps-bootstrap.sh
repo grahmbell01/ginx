@@ -91,11 +91,17 @@ fi
 "$VENV_DIR/bin/pip" install --quiet --upgrade pip
 "$VENV_DIR/bin/pip" install --quiet httpx
 
-if [[ -d "$REPO_DIR/agent" ]]; then
+AGENT_SRC=""
+if [[ -d "$EVILGINX_SRC/agent" ]]; then
+    AGENT_SRC="$EVILGINX_SRC/agent"
+elif [[ -d "$REPO_DIR/agent" ]]; then
+    AGENT_SRC="$REPO_DIR/agent"
+fi
+if [[ -n "$AGENT_SRC" ]]; then
     rm -rf "$AGENT_DIR"
-    cp -r "$REPO_DIR/agent" "$AGENT_DIR"
+    cp -r "$AGENT_SRC" "$AGENT_DIR"
 else
-    echo "WARN: no repo at $REPO_DIR — agent code not refreshed (existing $AGENT_DIR kept)"
+    echo "WARN: no agent code found — keeping existing $AGENT_DIR if present"
 fi
 [[ -d "$AGENT_DIR" ]] || { echo "ERROR: agent code missing (expected at $AGENT_DIR)" >&2; exit 1; }
 
