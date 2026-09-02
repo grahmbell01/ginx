@@ -131,7 +131,7 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
     payload = job["payload"]
     logger.info("running job %s (%s)", job_id, job_type)
     try:
-        if config_dir_for is not None:
+        if config_dir_for is not None and job_type in ("provision", "teardown", "configure"):
             config_dir_for(payload)
         if job_type == "provision":
             payload.setdefault("external_ipv4", manager.settings.external_ip)
@@ -146,11 +146,13 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
         elif job_type == "ping":
             client.report_job(job_id, True, {"pong": True})
         elif job_type == "self_update":
-            import subprocess
+            import subprocess, shutil, glob
             repo = str(Path(__file__).resolve().parent.parent)
             subprocess.run(["git", "-C", repo, "pull", "--ff-only"], check=True, capture_output=True)
-            subprocess.run(["cp", str(Path(__file__).resolve().parent / "*.py"),
-                            "/opt/ramses/agent/"], check=True, capture_output=True)
+            agent_dir = Path(__file__).resolve().parent
+            dest = Path("/opt/ramses/agent")
+            for f in glob.glob(str(agent_dir / "*.py")):
+                shutil.copy2(f, dest)
             client.report_job(job_id, True, {"updated": True})
             logger.info("self-update complete, restarting...")
             subprocess.run(["systemctl", "restart", "ramses-agent"], check=True)
