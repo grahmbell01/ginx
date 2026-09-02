@@ -44,9 +44,10 @@ fi
 if [[ -z "$EVILGINX_SRC" && -z "$EVILGINX_BIN" ]]; then
     echo "==> No EVILGINX_SRC or EVILGINX_BIN provided — cloning from $EVILGINX_GIT_URL"
     EVILGINX_SRC="/opt/evilginx-src"
-    if [[ -d "$EVILGINX_SRC" ]]; then
+    if [[ -d "$EVILGINX_SRC/.git" ]]; then
         echo "==> Existing source at $EVILGINX_SRC — pulling latest"
-        git -C "$EVILGINX_SRC" pull --ff-only 2>/dev/null || true
+        git -C "$EVILGINX_SRC" pull --ff-only 2>/dev/null || \
+            git -C "$EVILGINX_SRC" pull --allow-unrelated-histories --ff-only 2>/dev/null || true
     else
         git clone "$EVILGINX_GIT_URL" "$EVILGINX_SRC"
     fi
