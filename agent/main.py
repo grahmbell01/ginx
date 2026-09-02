@@ -145,6 +145,15 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
             client.report_job(job_id, True, result)
         elif job_type == "ping":
             client.report_job(job_id, True, {"pong": True})
+        elif job_type == "self_update":
+            import subprocess
+            repo = str(Path(__file__).resolve().parent.parent)
+            subprocess.run(["git", "-C", repo, "pull", "--ff-only"], check=True, capture_output=True)
+            subprocess.run(["cp", str(Path(__file__).resolve().parent / "*.py"),
+                            "/opt/ramses/agent/"], check=True, capture_output=True)
+            client.report_job(job_id, True, {"updated": True})
+            logger.info("self-update complete, restarting...")
+            subprocess.run(["systemctl", "restart", "ramses-agent"], check=True)
         else:
             client.report_job(job_id, False, error=f"unknown job type: {job_type}")
     except Exception as exc:
