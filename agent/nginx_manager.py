@@ -49,8 +49,8 @@ def render_sni(instances: dict[str, dict]) -> str:
     entries = []
     snips = []
     for hostname, meta in sorted(instances.items()):
-        entries.append(f"    {hostname}    {meta['loopback_ip']}:443;")
-        entries.append(f"    *.{hostname}    {meta['loopback_ip']}:443;")
+        entries.append(f"    {hostname}    {meta['loopback_ip']}:8443;")
+        entries.append(f"    *.{hostname}    {meta['loopback_ip']}:8443;")
         snips.append(f"    {hostname}    {meta['loopback_ip']};")
     return SNI_TEMPLATE.format(entries="\n".join(entries) or "    default off;", snips="\n".join(snips) or "")
 
