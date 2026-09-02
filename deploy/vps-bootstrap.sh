@@ -57,10 +57,8 @@ export DEBIAN_FRONTEND=noninteractive
 apt-get update -y
 apt-get install -y python3 python3-venv nginx iproute2 curl ca-certificates build-essential
 apt-get install -y libnginx-mod-stream || true
-# Only inject load_module if the .so exists (dynamic module) and isn't already loaded
-if [[ -f /usr/lib/nginx/modules/ngx_stream_module.so ]] && ! grep -q "load_module.*ngx_stream_module" /etc/nginx/nginx.conf; then
-    sed -i '1i load_module modules/ngx_stream_module.so;' /etc/nginx/nginx.conf
-fi
+# Remove any duplicate load_module we may have injected previously
+sed -i '/load_module.*ngx_stream_module/d' /etc/nginx/nginx.conf
 
 echo "==> Step 2/6  evilginx binary + phishlets"
 mkdir -p "$EVG_DIST/phishlets"
