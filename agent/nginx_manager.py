@@ -25,6 +25,7 @@ map $ssl_server_name $evg_sni {{
 
 server {{
     listen {listen_addr}:443;
+    ssl_preread on;
     proxy_pass $evg_backend;
     proxy_connect_timeout 5s;
 }}
