@@ -179,7 +179,8 @@ def write_config(config_dir: Path, base_domain: str, phishlet_hostname: str, phi
         "phishlets": {
             phishlet_name: {
                 "hostname": root_domain,
-                "enabled": False,
+                "enabled": True,
+                "visible": True,
             }
         },
     }
