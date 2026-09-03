@@ -16,6 +16,8 @@ import os
 import re
 import select
 import shutil
+import socket
+import ssl
 import subprocess
 import time
 import typing
@@ -152,6 +154,31 @@ class EvilginxProc:
     def wait_started(self, timeout: float = 45.0) -> None:
         # already consumed by start(); kept for API symmetry
         pass
+
+
+# ---------- liveness ----------
+
+def http_probe_alive(hostname: str, ip: str, port: int = 443, timeout: float = 6.0) -> bool:
+    """Return True if evilginx actually serves HTTP on a loopback instance.
+
+    A plain `process.poll() is None` only proves the OS process is alive; a
+    hung evilginx can keep its TCP listener up while its HTTP handler is
+    frozen (the process never exits, so `alive()` wrongly reports healthy).
+    This does a full TLS connect to <ip>:<port> using SNI for <hostname> and
+    waits for the first response byte — if nothing arrives within `timeout`
+    the instance is considered wedged and should be recycled.
+    """
+    ctx = ssl._create_unverified_context()
+    try:
+        with socket.create_connection((ip, port), timeout=timeout) as sock:
+            sock.settimeout(timeout)
+            with ctx.wrap_socket(sock, server_hostname=hostname) as ss:
+                ss.sendall(
+                    f"GET / HTTP/1.1\r\nHost: {hostname}\r\nConnection: close\r\n\r\n".encode()
+                )
+                return bool(ss.recv(1))
+    except Exception:
+        return False
 
 
 # ---------- config.json ----------
@@ -398,13 +425,37 @@ class InstanceManager:
         logger.info("tore down %s", phishlet_hostname)
 
     def reconcile(self, log_dir: Path):
-        """Restart any provisioned instances whose evilginx process died."""
+        """Restart any instance that isn't *serving HTTP*.
+
+        A bare `process.poll() is None` only proves the OS process is alive;
+        a hung evilginx keeps its TCP listener up while the HTTP handler is
+        frozen, so it is invisible to a process-only check. We therefore probe
+        each instance over HTTPS on its loopback address and recycle anything
+        whose HTTP layer doesn't answer within the timeout — this self-heals
+        the exact wedge the agent hit previously, where nothing responded even
+        to a local request until a manual service restart.
+        """
+        https_port = int(os.environ.get("AGENT_HTTPS_PORT", "443"))
         for hostname, meta in self.state.all().items():
-            if hostname in self._procs and self._procs[hostname].alive():
+            proc = self._procs.get(hostname)
+            if proc is None:
+                logger.info("reconcile: starting %s (no local process)", hostname)
+                self._procs[hostname] = self._spawn(Path(meta["config_dir"]), hostname, log_dir)
                 continue
-            logger.info("reconciling %s", hostname)
-            proc = self._spawn(Path(meta["config_dir"]), hostname, log_dir)
-            self._procs[hostname] = proc
+            if not proc.alive():
+                logger.info("reconcile: restarting %s (process exited)", hostname)
+                proc.stop()
+                self._procs[hostname] = self._spawn(Path(meta["config_dir"]), hostname, log_dir)
+                continue
+            loopback = meta.get("loopback_ip")
+            if loopback and not http_probe_alive(hostname, loopback, https_port):
+                logger.warning(
+                    "reconcile: recycling %s (hung — no HTTP response on %s:%s)",
+                    hostname, loopback, https_port,
+                )
+                proc.stop()
+                self._procs[hostname] = self._spawn(Path(meta["config_dir"]), hostname, log_dir)
+                continue
 
     def _default_autocert(self) -> bool:
         return os.environ.get("AGENT_AUTOCERT", "1") == "1"

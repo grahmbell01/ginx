@@ -107,6 +107,8 @@ def main() -> int:
         logger.error("startup nginx config regeneration failed: %s", exc)
 
     first_heartbeat = True
+    _last_reconcile = 0.0
+    _liveness_interval = float(os.environ.get("AGENT_LIVENESS_INTERVAL", "30"))
     while True:
         try:
             load, mem, disk = ps_metrics()
@@ -127,6 +129,15 @@ def main() -> int:
 
             _report_captures(client, manager, cap_cache)
             cap_state.save(cap_cache)
+
+            # Self-heal: periodically HTTP-probe instances and recycle any that
+            # are alive as a process but hung at the HTTP layer.
+            if time.time() - _last_reconcile >= _liveness_interval:
+                _last_reconcile = time.time()
+                try:
+                    manager.reconcile(root_log)
+                except Exception as exc:
+                    logger.error("periodic reconcile failed: %s", exc)
 
             if args.onetime:
                 return 0
