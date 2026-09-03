@@ -42,3 +42,11 @@ class ControlClient:
             "result": result,
             "error": error,
         }))
+
+    def report_captures(self, hostname: str, lure_url: str, captures: list[dict]) -> dict:
+        """Forward captured sessions for one provisioned instance to the control plane."""
+        return self._ensure(self._client.post("/agent/captures", json={
+            "hostname": hostname,
+            "lure_url": lure_url,
+            "captures": captures,
+        }))
