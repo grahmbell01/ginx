@@ -168,7 +168,7 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
     if job_type in ("provision", "teardown"):
         try:
             conf_path = Path(manager.settings.nginx_conf)
-            sni = render_sni(manager.state.all())
+            sni = render_sni(manager.state.all(), manager.settings.external_ip)
             http = render_http()
             apply(sni, http, conf_path, apply=manager.settings.nginx_apply)
         except Exception as exc:

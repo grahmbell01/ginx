@@ -24,7 +24,7 @@ map $ssl_server_name $evg_sni {{
 }}
 
 server {{
-    listen 443;
+    listen {listen_addr}:443;
     proxy_pass $evg_backend;
     proxy_connect_timeout 5s;
 }}
@@ -45,14 +45,19 @@ server {{
 """
 
 
-def render_sni(instances: dict[str, dict]) -> str:
+def render_sni(instances: dict[str, dict], external_ip: str = "0.0.0.0") -> str:
     entries = []
     snips = []
     for hostname, meta in sorted(instances.items()):
-        entries.append(f"    {hostname}    {meta['loopback_ip']}:8443;")
-        entries.append(f"    *.{hostname}    {meta['loopback_ip']}:8443;")
+        entries.append(f"    {hostname}    {meta['loopback_ip']}:443;")
+        entries.append(f"    *.{hostname}    {meta['loopback_ip']}:443;")
         snips.append(f"    {hostname}    {meta['loopback_ip']};")
-    return SNI_TEMPLATE.format(entries="\n".join(entries) or "    default off;", snips="\n".join(snips) or "")
+    listen_addr = external_ip if external_ip and external_ip != "0.0.0.0" else "0.0.0.0"
+    return SNI_TEMPLATE.format(
+        listen_addr=listen_addr,
+        entries="\n".join(entries) or "    default off;",
+        snips="\n".join(snips) or "",
+    )
 
 
 def render_http() -> str:
