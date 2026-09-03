@@ -15,6 +15,7 @@
 # Optional:     EVILGINX_BIN (prebuilt binary path) instead of EVILGINX_SRC
 #               EVILGINX_GIT_URL (auto-clone if no SRC/BIN given, default: https://github.com/grahmbell01/ginx.git)
 #               AGENT_HTTPS_PORT (default 443), AGENT_DNS_PORT (default 5302)
+#               AGENT_DEVELOPER (default 1 — required for self-signed MITM certs)
 #               LABEL (friendly name for systemd unit)
 set -euo pipefail
 
@@ -148,6 +149,7 @@ AGENT_STATE_FILE=/opt/evilginx/agent-state.json
 NGINX_CONF=$NGINX_STREAM_DIR/evilginx-sni.conf
 NGINX_APPLY=1
 LOOPBACK_APPLY=1
+AGENT_DEVELOPER=1
 EOF
 
 cat > /etc/systemd/system/$LABEL.service <<EOF
