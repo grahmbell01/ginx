@@ -168,9 +168,10 @@ def _handle_job(client: ControlClient, manager: InstanceManager, job: dict, log_
     if job_type in ("provision", "teardown"):
         try:
             conf_path = Path(manager.settings.nginx_conf)
+            http_path = Path(manager.settings.nginx_http_conf)
             sni = render_sni(manager.state.all(), manager.settings.external_ip)
-            http = render_http(manager.settings.external_ip)
-            apply(sni, http, conf_path, apply=manager.settings.nginx_apply)
+            http = render_http(manager.state.all(), manager.settings.external_ip)
+            apply(sni, http, conf_path, http_path, apply=manager.settings.nginx_apply)
         except Exception as exc:
             logger.error("nginx config regeneration failed: %s", exc)
 

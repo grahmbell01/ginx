@@ -17,6 +17,7 @@ class AgentSettings:
 
     external_ip: str = field(default_factory=lambda: os.environ.get("EXTERNAL_IP", ""))
     nginx_conf: str = field(default_factory=lambda: os.environ.get("NGINX_CONF", "/etc/nginx/conf.d/evilginx-sni.conf"))
+    nginx_http_conf: str = field(default_factory=lambda: os.environ.get("NGINX_HTTP_CONF", "/etc/nginx/conf.d/evilginx-http.conf"))
     nginx_apply: bool = os.environ.get("NGINX_APPLY", "0") == "1"
     loopback_apply: bool = os.environ.get("LOOPBACK_APPLY", "0") == "1"
 

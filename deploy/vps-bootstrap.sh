@@ -114,6 +114,14 @@ echo "==> Step 4/6  nginx: top-level stream include (agent writes SNI map here)"
 if ! grep -q "include $NGINX_STREAM_DIR/\*.conf;" /etc/nginx/nginx.conf; then
     sed -i "s#^}\$#}\n\nstream {\n    include $NGINX_STREAM_DIR/*.conf;\n}#" /etc/nginx/nginx.conf
 fi
+
+# Disable the default site so it does not bind 0.0.0.0:80 (which would block
+# evilginx's autocert ACME listener on 127.0.0.2:80). The agent writes its own
+# http config into /etc/nginx/conf.d/ (already covered by the *.conf glob)
+# which binds port 80 to the external IP only.
+if [[ -f /etc/nginx/sites-enabled/default ]]; then
+    rm -f /etc/nginx/sites-enabled/default
+fi
 nginx -t || { echo "ERROR: nginx config test failed" >&2; exit 1; }
 systemctl enable --now nginx
 
