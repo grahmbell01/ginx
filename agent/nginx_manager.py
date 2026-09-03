@@ -64,7 +64,7 @@ def render_http(instances: dict[str, dict], external_ip: str = "0.0.0.0") -> str
     acme_servers = []
     for hostname, meta in sorted(instances.items()):
         acme_servers.append(
-            "server {{\n"
+            "server {\n"
             f"    listen {listen_addr}:80;\n"
             f"    server_name {hostname} *.{hostname};\n"
             "    location ^~ /.well-known/acme-challenge/ {\n"
