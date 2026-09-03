@@ -55,7 +55,7 @@ def render_sni(instances: dict[str, dict], external_ip: str = "0.0.0.0") -> str:
     listen_addr = external_ip if external_ip and external_ip != "0.0.0.0" else "0.0.0.0"
     return SNI_TEMPLATE.format(
         listen_addr=listen_addr,
-        entries="\n".join(entries) or "    default off;",
+        entries="\n".join(entries),
         snips="\n".join(snips) or "",
     )
 
