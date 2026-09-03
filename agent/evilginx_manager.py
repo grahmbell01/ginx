@@ -165,6 +165,9 @@ def write_config(config_dir: Path, base_domain: str, phishlet_hostname: str, phi
     parts = base_domain.split(".")
     root_domain = ".".join(parts[-2:]) if len(parts) >= 3 else base_domain
     cfg = {
+        "blacklist": {
+            "mode": "off",
+        },
         "general": {
             "autocert": autocert,
             "bind_ipv4": bind_ipv4,
